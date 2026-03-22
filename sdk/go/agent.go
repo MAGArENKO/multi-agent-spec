@@ -166,18 +166,22 @@ func (a *Agent) QualifiedName() string {
 }
 
 // ParseQualifiedName splits a qualified agent name into namespace and name parts.
-// Returns empty namespace if no "/" is present.
+// Splits on the last "/" so that multi-level namespaces (e.g. "deep/nested")
+// round-trip correctly with QualifiedName. Returns empty namespace if no "/" is present.
 //
 // Examples:
 //
-//	ParseQualifiedName("agent-name")        → ("", "agent-name")
-//	ParseQualifiedName("prd/lead")          → ("prd", "lead")
-//	ParseQualifiedName("shared/review")     → ("shared", "review")
+//	ParseQualifiedName("agent-name")           → ("", "agent-name")
+//	ParseQualifiedName("prd/lead")             → ("prd", "lead")
+//	ParseQualifiedName("shared/review")        → ("shared", "review")
+//	ParseQualifiedName("deep/nested/agent")    → ("deep/nested", "agent")
 func ParseQualifiedName(qualifiedName string) (namespace, name string) {
-	for i := 0; i < len(qualifiedName); i++ {
+	i := len(qualifiedName) - 1
+	for i >= 0 {
 		if qualifiedName[i] == '/' {
 			return qualifiedName[:i], qualifiedName[i+1:]
 		}
+		i--
 	}
 	return "", qualifiedName
 }
