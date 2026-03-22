@@ -10,6 +10,10 @@ main.zip
 node_modules/
 sdk/typescript/dist/
 
+# Python
+__pycache__/
+*.py[cod]
+
 # Go
 *.exe
 *.exe~
