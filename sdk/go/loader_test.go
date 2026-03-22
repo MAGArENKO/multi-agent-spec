@@ -385,7 +385,7 @@ func TestParseQualifiedName(t *testing.T) {
 		{"agent-name", "", "agent-name"},
 		{"prd/lead", "prd", "lead"},
 		{"shared/review-board", "shared", "review-board"},
-		{"deep/nested/agent", "deep", "nested/agent"},
+		{"deep/nested/agent", "deep/nested", "agent"},
 	}
 
 	for _, tt := range tests {
@@ -412,6 +412,48 @@ func TestAgentQualifiedName(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("QualifiedName() = %q, want %q", got, tt.want)
 		}
+	}
+}
+
+// TestParseQualifiedNameRoundTrip ensures that for agents loaded from multi-level
+// directories (e.g. deep/nested/agent.md), ParseQualifiedName(agent.QualifiedName())
+// round-trips correctly. The loader uses the full path as namespace.
+func TestParseQualifiedNameRoundTrip(t *testing.T) {
+	tmpDir := t.TempDir()
+	deepNested := filepath.Join(tmpDir, "deep", "nested")
+	if err := os.MkdirAll(deepNested, 0755); err != nil {
+		t.Fatal(err)
+	}
+	agentContent := `---
+name: test-agent
+description: Test
+model: sonnet
+tools: []
+---
+
+# Test
+`
+	if err := os.WriteFile(filepath.Join(deepNested, "test-agent.md"), []byte(agentContent), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	agents, err := LoadAgentsFromDir(tmpDir)
+	if err != nil {
+		t.Fatalf("LoadAgentsFromDir: %v", err)
+	}
+	if len(agents) != 1 {
+		t.Fatalf("expected 1 agent, got %d", len(agents))
+	}
+	a := agents[0]
+
+	qn := a.QualifiedName()
+	ns, name := ParseQualifiedName(qn)
+
+	if ns != a.Namespace || name != a.Name {
+		t.Errorf("ROUND-TRIP FAILED: agent has Namespace=%q Name=%q", a.Namespace, a.Name)
+		t.Errorf("  QualifiedName() = %q", qn)
+		t.Errorf("  ParseQualifiedName(%q) = (ns=%q, name=%q)", qn, ns, name)
+		t.Errorf("  Expected: ns=%q name=%q", a.Namespace, a.Name)
 	}
 }
 
